@@ -1,1 +1,18 @@
-site_name: My Docs
+site_name: Pent-Hive Docs
+nav:
+  - Home: index.md
+  - About: about.md
+  - Quick Start: quick_start.md
+  - CLI Docs:
+    - Overview: cli_docs/overview.md
+    - Commands: cli_docs/commands.md
+  - YAML API Docs:
+    - Overview: api/overview.md
+    - Bee Specialization: api/bee_specialization.md
+    - Hive Specialization: api/hive_specialization.md
+    - Queen Specialization: api/queen_specialization.md
+  - Examples:
+    - Basic Usage: examples/basic_usage.md
+
+theme:
+  name: material

@@ -1,17 +1,13 @@
-# Welcome to MkDocs
+# 🐝Pent-Hive
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+Welcome to the Pent-Hive documentation. This site documents the CLI, the YAML API for Bees, Hives and Queens, and usable examples to help you design and run repeatable pentest workflows.
 
-## Commands
+Quick links:
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+- Overview and goals: `About`
+- Get started: `Quick Start`
+- CLI reference: `CLI Docs`
+- YAML API reference: `YAML API Docs`
+- Examples and labs: `Examples`
 
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+If you're the project author (you), focus first on the `YAML API Docs` to finalize the contract before implementing code.

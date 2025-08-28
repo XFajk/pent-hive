@@ -1,4 +1,4 @@
-# Pent-Hive
+# About
 
 A structured way to organize, automate, and reproduce pentests.
 
@@ -39,4 +39,3 @@ Hive & Bees provides a clean structure:
 ### **Queens** → orchestrators that tie Bees and Hives together into workflows.
 
 This way, you can keep pentests **organized, reusable, and cross-platform**.
-
