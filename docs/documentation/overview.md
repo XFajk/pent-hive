@@ -21,5 +21,5 @@ Step-by-step guides and practical examples to help you get started with Pent-Hiv
 
 ## Getting Started
 
-If you're new to Pent-Hive, start with the [Overview](documentation/overview.md) and [How It Works](documentation/how_it_works.md) sections. Once you're familiar with the basics, dive into the [CLI Docs](documentation/cli_docs.md), [YAML API Docs](documentation/api/bee_specialization.md), and [Examples](examples/basic_usage.md) to see Pent-Hive in action.
+If you're new to Pent-Hive, start with the [How It Works](how_it_works.md) sections. Once you're familiar with the basics, dive into the [CLI Docs](cli_docs.md), [YAML API Docs](api/bee_spec.md), and [Examples](/examples/basic_usage.md) to see Pent-Hive in action.
 

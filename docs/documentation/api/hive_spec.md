@@ -24,7 +24,7 @@ The `type` field specifies the type of Hive. It can have one of the following va
 #### HOST
 The `HOST` type runs bees on the local machine. It does not require any additional fields.
 
-#### Example:
+##### Example:
 ```yaml
 type: HOST
 ```
@@ -39,7 +39,7 @@ The `REMOTE` type runs bees on a remote machine via SSH. It requires the followi
 
 **Note**: Handling passwords securely is critical. It is recommended to use SSH keys or an external vault for password management.
 
-#### Example:
+##### Example:
 ```yaml
 type: REMOTE
 user: pentester
@@ -54,7 +54,7 @@ The `CONTAINER` type runs tasks inside a Docker container. It requires the follo
 - `image`: The Docker image to use.
 - `flags` (optional): Additional flags to pass to the Docker command.
 
-#### Example:
+##### Example:
 ```yaml
 type: CONTAINER
 image: ubuntu:latest

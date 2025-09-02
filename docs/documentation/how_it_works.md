@@ -17,14 +17,23 @@ Additionally, bees offer features to expedite workflows:
 > The build feature draws inspiration from the Unix make tool. The build section acts as a make target, where you can specify build dependencies and steps. Like make, the build process only runs if dependencies change; otherwise, it is skipped since the output is up to date.
 
 ### Hives
-Hives specify the environments where Bees run. These can include:
+Hives specify the environments where Bees run. You have multiple types of hives 
 
 - **Host**: The local machine.
 - **Remote**: A remote system accessed via SSH.
-- **Docker**: A containerized environment.
+- **Container**: A containerized environment.
 
-Hives abstract away the complexity of managing different execution environments.
+Hives abstract away the complexity of managing different execution environments. read the [Hive Specification](api/hive_spec.md) for more information.
 
+> [!NOTE]
+> You should preferably use the Container over Host Hives to get better isolation and a more consistent environment
+
+> [!example] 
+>You might be wondering about the purpose of hives and what they are used for. This example should help clarify that.
+>
+>Imagine you want to run an exploit to hack another computer. However, this exploit requires some action to be performed on the target's computer, such as accessing an HTTP site or sending an ARP request. How do you perform this action? You could set up two computers in front of you and manually run the necessary operations on both, but that would be tedious. 
+>
+>That's why hives exist. You have 'bees'—actions or tasks—that you want to run on the target, and possibly on your own attacking machine. With hives, you can set up a host hive and a remote hive to automate these interactions.
 ### Queens
 Queens orchestrate the execution of Bees across Hives. They ensure tasks are synchronized and executed in the correct order, making complex workflows manageable.
 

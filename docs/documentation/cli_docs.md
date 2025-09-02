@@ -34,7 +34,7 @@ pent-hive test
 - Runs the tasks defined in the queen YAML files.
 - Ensures proper synchronization between bees and hives during execution.
 
-For more details on defining tasks, see the [Bee Specialization](api/bee_specialization.md).
+For more details on defining tasks, see the [Bee Specialization](api/bee_spec.md).
 
 ---
 
@@ -50,7 +50,7 @@ pent-hive build
 - Looks for build instructions in the bee YAML files.
 - Automates the build process for bees that require compilation or setup.
 
-For more details on build instructions, see the [Bee Specialization](api/bee_specialization.md).
+For more details on build instructions, see the [Bee Specialization](api/bee_spec.md).
 
 ---
 
@@ -82,4 +82,4 @@ pent-hive reset
 - Executes the `reset-steps` defined in the execution section of the bee YAML files.
 - If no `reset-steps` are defined, the command does nothing for that bee.
 
-For more details on reset steps, see the [Bee Specialization](api/bee_specialization.md).
+For more details on reset steps, see the [Bee Specialization](api/bee_spec.md).
