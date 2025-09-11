@@ -1,78 +1,238 @@
 # Bee Specification
 
-Bees are the backbone of the Pent-Hive system. They define the tasks or actions to be executed on hives, such as running commands, building programs, or preparing environments. Bees are designed to be flexible and powerful, enabling users to automate complex workflows.
+A Bee is a YAML file that defines a single task or command. Bees are the building blocks of your pentest workflows.
 
-## Naming Convention
+## File Structure
 
-- The name of a bee is derived from its filename. For example, a file named `arp_poisoning.bee.yaml` defines a bee named `arp_poisoning`.
-- All bee files must include the `.bee.yaml` extension to be recognized as valid bee definitions.
+Bee files must:
 
-## Structure of a Bee YAML File
+- End with `.bee.yaml`
+- Start with `pent_hive_spec: "1.0"`
+- Have a unique `metadata.name`
 
-A bee YAML file consists of two main sections: **Build** and **Execution**. Each section can define dependencies and steps.
-### 1. Execution Section
+## Required Fields
 
-The execution section defines the main task or action the bee performs.
-
-#### Fields:
-- `dependencies`: A list of dependencies required for the execution process.
-- `steps`: A list of shell commands to execute during the bee's runtime.
-- `reset-steps` (optional): A list of shell commands to reset the environment to a clean state.
-
-#### Example:
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: my_task
 execution:
-  - dependencies:
-    - HIVE target
-    - CMD python3
-    - FILE ./config.json
-    - SHELL bash
-  - steps:
-    - python3 exploit.py --config ./config.json
-  - reset-steps:
-    - rm ./output.log
-    - pkill exploit
+  steps:
+    - run: "echo Hello"
 ```
 
-### 2. Build Section
+## Full Structure
 
-The build section is optional and is used to prepare the environment or build tools required for the bee's execution.
-
-#### Fields:
-- `dependencies`: A list of dependencies required for the build process.
-- `steps`: A list of shell commands to execute during the build process.
-
-#### Example:
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: port_scanner
+  description: "Scans ports on target"
+  tags: ["network", "recon"]
+  params:
+    named: ["target", "ports"]
+    defaults:
+      ports: "1-1000"
+
 build:
-  - dependencies:
-    - CMD cmake
-    - FILE ./CMakeLists.txt
-  - steps:
-    - cmake .
-    - make
+  dependencies:
+    - type: CMD
+      value: gcc
+  steps:
+    - name: "compile scanner"
+      run: "gcc scanner.c -o scanner"
+
+execution:
+  dependencies:
+    - type: CMD
+      value: nmap
+  steps:
+    - name: "scan ports"
+      run: "nmap -p @ports @target"
+      timeout_s: 300
+  artifacts:
+    - "scan_results.txt"
+  env:
+    SCAN_OUTPUT: "/tmp/scan.log"
+  privileged: false
 ```
 
-## Dependency Types
+## Metadata Section
 
-Dependencies ensure that the required conditions are met before a bee can run. There are five types of dependencies:
+### Required
 
-1. **HIVE**: Specifies the hives where the bee can run. Multiple hive dependencies mean the bee can run on any of the specified hives.
-	   - Example: `- HIVE target`
+- `name` - Unique identifier for this Bee
 
-2. **CMD**: Ensures that a specific command is available in the hive's environment.
-	- Example: `- CMD cmake`
+### Optional
 
-3. **FILE**: Ensures that a specific file exists in the hive's environment.
-	   - Example: `- FILE ./config.json`
+- `description` - Human-readable description
+- `tags` - Array of labels for organization
+- `params` - Parameter definitions
+  - `named` - List of named parameters this Bee accepts
+  - `defaults` - Default values for parameters
 
-4. **DIR**: Ensures that a specific directory exists in the hive's environment.
-	   - Example: `- DIR ./src/`
+## Build Section (Optional)
 
-5. **SHELL**: Specifies the shells in which the bee can run. If no shell is specified, the bee can run in any shell.
-	   - Example: `- SHELL bash`
-	   - Example: `- SHELL sh`
+Used to prepare tools before execution:
+
+- `dependencies` - What's needed to build
+- `steps` - Commands to run
+
+## Execution Section (Required)
+
+Defines what the Bee actually does:
+
+- `dependencies` - Runtime requirements
+- `steps` - Commands to execute (at least one required)
+- `reset_steps` - Cleanup commands
+- `artifacts` - Files to collect after execution
+- `env` - Environment variables
+- `privileged` - Whether to run with elevated privileges
+- `retry_policy` - How to handle failures
+
+## Parameters
+
+Bees can accept parameters using `@` tokens:
+
+- `@1`, `@2`, etc. - Positional parameters
+- `@name` - Named parameters
+- `@secret(KEY)` - Secrets from environment variables
+
+Example:
+
+```yaml
+# Queen passes parameters
+run: ["auth_scanner 192.168.1.1 username=admin"]
+
+# Bee receives them
+run: "hydra -l @username -P @secret(PASSWORD_LIST) @1 ssh"
+```
+
+### Working with Secrets
+
+Secrets are loaded from environment variables or `.env` files:
+
+```bash
+# .env file
+API_KEY=sk-1234567890abcdef
+DB_PASSWORD=super_secret_password
+SSH_PRIVATE_KEY=/home/user/.ssh/id_rsa
+```
+
+```yaml
+# Bee using secrets
+execution:
+  steps:
+    - run: "curl -H 'Authorization: Bearer @secret(API_KEY)' @target_url"
+  env:
+    DB_PASS: "@secret(DB_PASSWORD)"
+```
+
+## Dependencies
+
+Dependencies specify what must be available:
+
+```yaml
+dependencies:
+  - type: CMD
+    value: nmap        # Command must exist
+  - type: FILE
+    value: /etc/hosts  # File must exist
+  - type: DIR
+    value: /tmp        # Directory must exist
+```
+
+Types: `CMD`, `FILE`, `DIR`, `HIVE`, `SHELL`
 
 ## Steps
 
-Steps are shell commands executed in the hive's environment. They can be any valid command supported by the hive's shell, including scripts, compiled binaries, or even Python code.
+Steps define the actual work:
+
+```yaml
+steps:
+  - run: "simple command"
+  - name: "complex step"
+    run: ["multiple", "commands"]
+    shell: bash
+    timeout_s: 60
+    env:
+      CUSTOM_VAR: "value"
+```
+
+Each step can have:
+
+- `name` - Description
+- `run` - Command(s) to execute
+- `shell` - Shell to use
+- `timeout_s` - Time limit
+- `env` - Environment variables
+
+> [!NOTE]
+> Steps run in order. If one fails, the Bee stops unless a retry policy is defined.
+
+## Examples
+
+### Simple Command Bee
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: ping_host
+execution:
+  steps:
+    - run: "ping -c 4 @1"
+```
+
+### Tool Building Bee
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: custom_scanner
+build:
+  steps:
+    - run: "gcc scanner.c -o scanner"
+execution:
+  dependencies:
+    - type: FILE
+      value: "./scanner"
+  steps:
+    - run: "./scanner @target"
+  artifacts:
+    - "results.json"
+```
+
+### Authentication Scanner
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: brute_force
+  params:
+    named: ["target", "username"]
+execution:
+  steps:
+    - name: "brute force login"
+      run: "hydra -l @username -P @secret(WORDLIST_PATH) @target ssh"
+      timeout_s: 600
+  env:
+    HYDRA_OPTS: "@secret(HYDRA_OPTIONS)"
+```
+
+### API Testing Bee
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: api_test
+  params:
+    named: ["endpoint"]
+execution:
+  steps:
+    - name: "authenticated API call"
+      run: "curl -H 'Authorization: Bearer @secret(API_TOKEN)' @endpoint"
+    - name: "save response"
+      run: "echo $RESPONSE > api_results.json"
+  artifacts:
+    - "api_results.json"
+```

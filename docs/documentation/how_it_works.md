@@ -1,87 +1,137 @@
 # How Pent-Hive Works
 
-Pent-Hive is a system designed to simplify and automate penetration testing workflows. By organizing tasks, environments, and orchestration into structured components, Pent-Hive enables users to focus on testing rather than managing complex setups.
+Pent-Hive organizes pentests into three simple components that work together.
 
-## Core Concepts
+## The Three Components
 
-### Bees
-Bees are the workers of the system, responsible for defining individual tasks or actions. There is no limit to what bees can do: they can execute penetration testing exploits or perform preparatory steps on the target machine to enable such exploits. 
+### Bees - Your Tasks
 
-Additionally, bees offer features to expedite workflows:
+A Bee is a YAML file that describes a single task:
 
-- They can track dependencies required by the bee. (see [Dependence types in the Bee Specification](api/bee_spec.md#dependency-types) for more information)
-- If a bee needs a custom executable, there is a section to provide build instructions, allowing you to compile necessary files before running the bee. (see [Build Section in the Bee Specification](api/bee_spec.md#2-build-section) for more information)
-- The execution section can include a reset sub-section, which contains instructions to restore the environment to its pre-bee state. (see [Execution Section feilds in the Bee Specification](api/bee_spec.md#fields) for more information)
-
-> [!note] 
-> The build feature draws inspiration from the Unix make tool. The build section acts as a make target, where you can specify build dependencies and steps. Like make, the build process only runs if dependencies change; otherwise, it is skipped since the output is up to date.
-
-### Hives
-Hives specify the environments where Bees run. You have multiple types of hives 
-
-- **Host**: The local machine.
-- **Remote**: A remote system accessed via SSH.
-- **Container**: A containerized environment.
-
-Hives abstract away the complexity of managing different execution environments. read the [Hive Specification](api/hive_spec.md) for more information.
-
-> [!NOTE]
-> You should preferably use the Container over Host Hives to get better isolation and a more consistent environment
-
-> [!example] 
->You might be wondering about the purpose of hives and what they are used for. This example should help clarify that.
->
->Imagine you want to run an exploit to hack another computer. However, this exploit requires some action to be performed on the target's computer, such as accessing an HTTP site or sending an ARP request. How do you perform this action? You could set up two computers in front of you and manually run the necessary operations on both, but that would be tedious. 
->
->That's why hives exist. You have 'bees'—actions or tasks—that you want to run on the target, and possibly on your own attacking machine. With hives, you can set up a host hive and a remote hive to automate these interactions.
-### Queens
-Queens orchestrate the execution of Bees across Hives. They ensure tasks are synchronized and executed in the correct order, making complex workflows manageable.
-
-## Workflow
-
-1. **Initialization**:
-	   - Use the `init` command to create the required folder structure.
-
-2. **Configuration**:
-	   - Define Bees, Hives, and Queens using YAML files.
-
-3. **Validation**:
-	   - Run the `lint` command to check for errors in the YAML files.
-
-4. **Build**:
-	   - Use the `build` command to prepare dependencies for Bees.
-
-5. **Execution**:
-	   	- Run the `test` command to execute tasks defined in the Queen YAML files.
-
-6. **Reset**:
-	   - Use the `reset` command to clean up and prepare the environment for re-execution.
-
-## File Structure
-
-A typical Pent-Hive project follows this structure:
-
-```
-project-root/
-  bees/
-    example. bee.yaml
-  hives/
-    example.hive.yaml
-  queens/
-    example.queen.yaml
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: port_scan
+execution:
+  steps:
+    - run: "nmap -sS @target"
 ```
 
-- **`bees/`**: Contains YAML files defining tasks or actions.
-- **`hives/`**: Contains YAML files specifying execution environments.
-- **`queens/`**: Contains YAML files orchestrating tasks across environments.
+Each Bee can:
+- Run commands (`execution.steps`)
+- Build tools first if needed (`build.steps`)
+- Accept parameters (`@target`, `@1`, `@name`)
+- Collect output files (`artifacts`)
 
-## Example Use Case
+### Hives - Your Environments
 
-Imagine a penetration testing lab where you want to test ARP poisoning:
-1. Define a Bee to send ARP requests and another to poison the ARP table.
-2. Configure Hives for the attacker and target machines.
-3. Use a Queen to orchestrate the Bees, ensuring tasks are executed in the correct order.
-4. Run the `test` command to execute the workflow.
-5. Use the `reset` command to clean up and prepare for the next test.
+A Hive is a YAML file that describes where tasks run:
 
-By following this structured approach, Pent-Hive makes penetration testing workflows repeatable, organized, and efficient.
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: attacker
+type: CONTAINER
+container:
+  image: kali:latest
+```
+
+Three types available:
+- `HOST` - Run on your local machine
+- `REMOTE` - Run on a remote machine via SSH
+- `CONTAINER` - Run inside a Docker container
+
+### Queens - Your Workflows
+
+A Queen is a YAML file that orchestrates Bees on Hives:
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: basic_scan
+steps:
+  - id: scan
+    hive: attacker
+    run: ["port_scan 192.168.1.100"]
+```
+
+Queens define:
+- Which Bees to run
+- On which Hives
+- In what order (dependencies)
+- How to handle failures
+
+## How They Connect
+
+1. **You write** Bees (tasks), Hives (environments), and Queens (workflows)
+2. **Pent-Hive validates** everything with `pent-hive lint`
+3. **You preview** with `pent-hive test workflow --dry-run`
+4. **You execute** with `pent-hive test workflow --allow-network`
+
+## Parameter Flow
+
+Parameters flow from Queens to Bees:
+
+```yaml
+# Queen calls Bee with parameter
+run: ["port_scan 192.168.1.100"]
+
+# Bee receives it as @1
+run: "nmap -sS @1"
+```
+
+## Working with Secrets
+
+Sensitive data like passwords, API keys, and SSH keys should never be hardcoded in YAML files. Use `@secret(KEY)` tokens instead.
+
+### Setting up Secrets
+
+Create a `.env` file in your project root:
+
+```bash
+# .env
+TARGET_HOST=192.168.1.100
+SSH_USERNAME=pentester
+SSH_PRIVATE_KEY=/home/user/.ssh/client_key
+API_TOKEN=sk-1234567890abcdef
+WORDLIST_PATH=/usr/share/wordlists/rockyou.txt
+DB_PASSWORD=super_secret_password
+```
+
+### Using Secrets in YAML
+
+```yaml
+# In Hives
+connection:
+  host: "@secret(TARGET_HOST)"
+  user: "@secret(SSH_USERNAME)"
+  ssh_key_ref: "@secret(SSH_PRIVATE_KEY)"
+
+# In Bees
+steps:
+  - run: "curl -H 'Authorization: Bearer @secret(API_TOKEN)' @target"
+
+# In environment variables
+env:
+  DB_PASS: "@secret(DB_PASSWORD)"
+```
+
+### Security Features
+
+- Secrets are **masked** in `--dry-run` output (shows `[MASKED]`)
+- Secrets are loaded at runtime, never stored in YAML
+- Environment variables take precedence over `.env` file
+- Secrets are never logged in plain text
+
+> [!TIP]
+> Use `@secret(key)` for sensitive data - it gets masked in dry-runs and loaded securely at runtime.
+
+## Typical Workflow
+
+1. **Start** with `pent-hive init`
+2. **Write** your Bees, Hives, and Queens
+3. **Validate** with `pent-hive lint`
+4. **Preview** with `--dry-run`
+5. **Execute** for real
+
+That's it. The system handles scheduling, dependencies, and execution across different environments.

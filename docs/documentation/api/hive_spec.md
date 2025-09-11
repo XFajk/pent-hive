@@ -1,90 +1,215 @@
 # Hive Specification
 
-Hives define the environments where Bees execute their tasks. They abstract away the complexity of managing different execution environments, allowing users to focus on defining tasks and workflows.
+A Hive defines where Bees run. It describes an execution environment with connection details, constraints, and security settings.
 
-## Naming Convention
+## File Structure
 
-- The name of a Hive is derived from its filename. For example, a file named `target.hive.yaml` defines a Hive named `target`.
-- All Hive files must include the `.hive.yaml` extension to be recognized as valid Hive definitions.
+Hive files must:
 
-## Structure of a Hive YAML File
+- End with `.hive.yaml`
+- Start with `pent_hive_spec: "1.0"`
+- Have a unique `metadata.name`
 
-A Hive YAML file consists of a `type` field and additional fields depending on the type of Hive.
+## Required Fields
 
-### 1. Type Field
-
-The `type` field specifies the type of Hive. It can have one of the following values:
-
-- `HOST`: Runs tasks on the local machine.
-- `REMOTE`: Runs tasks on a remote machine via SSH.
-- `CONTAINER`: Runs tasks inside a Docker container.
-
-### 2. Fields by Type
-
-#### HOST
-The `HOST` type runs bees on the local machine. It does not require any additional fields.
-
-##### Example:
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: my_environment
+type: HOST|REMOTE|CONTAINER
+```
+
+## Hive Types
+
+### HOST - Local Machine
+
+Runs Bees on your local machine:
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: local
 type: HOST
 ```
 
-#### REMOTE
-The `REMOTE` type runs bees on a remote machine via SSH. It requires the following fields:
+### REMOTE - SSH Connection
 
-- `user`: The username for SSH access.
-- `url`: The URL or IP address of the remote machine.
-- `port`: The port for SSH access (default is 22).
-- `flags` (optional): Additional flags to pass to the SSH command.
+Runs Bees on a remote machine via SSH:
 
-**Note**: Handling passwords securely is critical. It is recommended to use SSH keys or an external vault for password management.
-
-##### Example:
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: target_server
 type: REMOTE
-user: pentester
-url: 192.168.1.100
-port: 22
-flags: "-o StrictHostKeyChecking=no"
+connection:
+  host: "@secret(TARGET_HOST)"
+  user: "@secret(SSH_USER)"
+  ssh_key_ref: "@secret(SSH_PRIVATE_KEY)"
+consent_required: true
+consent_id: "pentest-2025-target-approval"
 ```
 
-#### CONTAINER
-The `CONTAINER` type runs tasks inside a Docker container. It requires the following fields:
+Required fields for REMOTE:
 
-- `image`: The Docker image to use.
-- `flags` (optional): Additional flags to pass to the Docker command.
+- `connection.host` - IP address or hostname
+- `connection.user` - SSH username
 
-##### Example:
+Optional fields:
+
+- `connection.port` - SSH port (default: 22)
+- `connection.ssh_key_ref` - Reference to SSH key in secret store
+- `connection.flags` - Additional SSH flags
+
+### CONTAINER - Docker Container
+
+Runs Bees inside a Docker container:
+
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: kali_attacker
 type: CONTAINER
-image: ubuntu:latest
-flags: "--rm"
+container:
+  image: kali:latest
+  network_mode: "host"
+constraints:
+  allow_privileged: true
 ```
 
-## Validation Rules
+Required fields for CONTAINER:
 
-- The `type` field is required and must be one of `HOST`, `REMOTE`, or `CONTAINER`.
-- Additional fields must match the requirements for the specified type.
+- `container.image` - Docker image name
+
+Optional fields:
+
+- `container.network_mode` - Docker network mode
+- `container.mounts` - Volume mounts
+- `container.flags` - Additional docker flags
+
+## Metadata Section
+
+### Required
+
+- `name` - Unique identifier for this Hive
+
+### Optional
+
+- `description` - Human-readable description
+- `owner` - Who owns/manages this environment
+- `tags` - Array of labels (e.g., `["os:linux", "role:attacker"]`)
+
+## Security & Constraints
+
+Control what Bees can do on this Hive:
+
+```yaml
+constraints:
+  allow_privileged: false
+  allowed_networks:
+    - "10.0.0.0/8"
+    - "192.168.1.0/24"
+  max_cpu: "500m"
+  max_memory: "1Gi"
+```
+
+- `allow_privileged` - Allow privileged/root execution
+- `allowed_networks` - CIDR ranges this Hive can access
+- `max_cpu` - CPU limit hint
+- `max_memory` - Memory limit hint
+
+## Consent & Safety
+
+For REMOTE Hives targeting external systems:
+
+```yaml
+consent_required: true
+consent_id: "pentest-approval-2025-client-xyz"
+```
+
+- `consent_required` - Require explicit consent before execution
+- `consent_id` - Reference to documented approval
+
+> [!WARNING]
+> Always require consent for remote targets you don't own.
+
+## Secret References
+
+Never put credentials directly in Hive files. Use secret references:
+
+```yaml
+connection:
+  ssh_key_ref: "@secret(SSH_PRIVATE_KEY)"
+  # NOT: ssh_key: "-----BEGIN PRIVATE KEY-----..."
+```
+
+> [!TIP]
+> Secrets are loaded from environment variables or `.env` files at runtime and masked during dry-runs.
 
 ## Examples
 
-### HOST Hive
+### Local Development
+
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: localhost
+  description: "Local development machine"
 type: HOST
 ```
 
-### REMOTE Hive
+### Kali Container
+
 ```yaml
-type: REMOTE
-user: admin
-url: 10.0.0.1
-port: 2222
-flags: "-o StrictHostKeyChecking=no"
+pent_hive_spec: "1.0"
+metadata:
+  name: attacker
+  description: "Kali Linux tools container"
+  tags: ["os:kali", "role:attacker"]
+type: CONTAINER
+container:
+  image: kalilinux/kali-rolling:latest
+  network_mode: "host"
+constraints:
+  allow_privileged: true
+  max_memory: "2Gi"
 ```
 
-### CONTAINER Hive
+### Remote Target
+
 ```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: web_server
+  description: "Client's web server for testing"
+  owner: "client-corp"
+  tags: ["os:ubuntu", "role:target"]
+type: REMOTE
+connection:
+  host: "@secret(CLIENT_TARGET_IP)"
+  user: "@secret(SSH_USERNAME)"
+  port: 2222
+  ssh_key_ref: "@secret(CLIENT_SSH_KEY)"
+consent_required: true
+consent_id: "pentest-approval-2025-09-client-corp"
+constraints:
+  allow_privileged: false
+  allowed_networks:
+    - "203.0.113.0/24"
+```
+
+### Isolated Test Environment
+
+```yaml
+pent_hive_spec: "1.0"
+metadata:
+  name: isolated_lab
+  description: "Isolated container for dangerous tools"
 type: CONTAINER
-image: alpine:latest
-flags: "--rm -it"
+container:
+  image: ubuntu:22.04
+  network_mode: "none"  # No network access
+constraints:
+  allow_privileged: false
+  max_cpu: "200m"
+  max_memory: "512Mi"
 ```

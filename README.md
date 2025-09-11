@@ -20,7 +20,7 @@ Doing this manually is:
 
 Hive & Bees provides a clean structure:
 
-### **Bees** → units of work.
+### **Bees** → units of work
 
   Each Bee can define:
 
@@ -28,7 +28,7 @@ Hive & Bees provides a clean structure:
 * `run` → execute the actual test/exploit.
 * `reset` → restore the environment to its pre-test state.
 
-### **Hives** → environments where Bees run.
+### **Hives** → environments where Bees run
 
   Abstracts away *where* the pentest happens:
 
@@ -36,7 +36,6 @@ Hive & Bees provides a clean structure:
 * Docker containers.
 * Remote targets.
 
-### **Queens** → orchestrators that tie Bees and Hives together into workflows.
+### **Queens** → orchestrators that tie Bees and Hives together into workflows
 
 This way, you can keep pentests **organized, reusable, and cross-platform**.
-

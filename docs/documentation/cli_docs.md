@@ -1,85 +1,102 @@
-# Commands Reference
+# CLI Reference
 
-This document provides an overview of the commands available in the Pent-Hive CLI. Each command is designed to streamline the setup, validation, and execution of penetration testing workflows.
-
-For more details on the YAML API used by these commands, refer to the [YAML API Overview](overview.md).
+The Pent-Hive CLI has four main commands: `init`, `lint`, `build`, and `test`.
 
 ## Commands
 
-### `init`
-Initializes a new Pent-Hive project by creating the necessary folder structure for bees, hives, and queens.
+### init
 
-**Usage**:
+Create a new Pent-Hive project:
+
 ```bash
-pent-hive init
+pent-hive init [--with-schemas] [--with-vscode]
 ```
 
-**Details**:
-- Creates the following directories:
-  - `bees/`: For defining task executors.
-  - `hives/`: For specifying execution environments.
-  - `queens/`: For organizing and synchronizing tasks.
+This creates the basic folder structure:
 
- ---
+- `bees/` - Task definitions
+- `hives/` - Environment definitions  
+- `queens/` - Workflow definitions
 
-### `test`
-**Description**: Executes the queens, which in turn run the bees in the specified hives.
+Options:
 
-**Usage**:
+- `--with-schemas` - Install JSON schema files locally
+- `--with-vscode` - Configure VS Code for YAML validation
+
+### lint
+
+Validate all your YAML files:
+
 ```bash
-pent-hive test
+pent-hive lint           # Check everything
+pent-hive lint file.yaml # Check one file
 ```
 
-**Details**:
-- Runs the tasks defined in the queen YAML files.
-- Ensures proper synchronization between bees and hives during execution.
+Catches:
 
-For more details on defining tasks, see the [Bee Specialization](api/bee_spec.md).
+- Invalid YAML syntax
+- Schema violations
+- Missing references (Queen → Bee, Queen → Hive)
+- Circular dependencies
+- Hardcoded secrets (use `@secret(key)` instead)
 
----
+### build
 
-### `build`
-**Description**: Executes build commands specified by the bees. This is useful for tasks that require building from source.
+Build tools and dependencies defined in Bees:
 
-**Usage**:
 ```bash
-pent-hive build
+pent-hive build [--parallel] [--bees pattern]
 ```
 
-**Details**:
-- Looks for build instructions in the bee YAML files.
-- Automates the build process for bees that require compilation or setup.
+Options:
 
-For more details on build instructions, see the [Bee Specialization](api/bee_spec.md).
+- `--parallel` - Build multiple Bees concurrently
+- `--bees pattern` - Only build matching Bees
 
----
+### test
 
-### `lint`
-**Description**: Validates the YAML configuration files for bees, hives, and queens to ensure there are no naming mistakes or structural issues.
+Run workflows defined by Queens:
 
-**Usage**:
 ```bash
-pent-hive lint
+pent-hive test workflow-name [options...]
 ```
 
-**Details**:
-- Checks for errors in the YAML files.
-- Ensures consistency and correctness in the configuration.
+> [!WARNING]
+> Always run with `--dry-run` first to see what will happen.
 
-For more details on YAML structure, see the [YAML API Overview](overview.md).
+Important options:
 
----
+- `--dry-run` - Show the plan without executing
+- `--allow-network` - Enable network operations
+- `--consent id` - Required for remote targets
 
-### `reset`
-**Description**: Resets the environment for the specified bees to a clean state, making them ready for re-execution.
+Example workflow:
 
-**Usage**:
 ```bash
-pent-hive reset
+# 1. Set up your secrets
+echo "TARGET_IP=192.168.1.100" > .env
+echo "SSH_USER=pentester" >> .env
+echo "API_TOKEN=sk-1234567890" >> .env
+
+# 2. Preview what will happen (secrets will show as [MASKED])
+pent-hive test my-workflow --dry-run
+
+# 3. Run for real (if everything looks good)
+pent-hive test my-workflow --allow-network --consent consent-2025-xyz
 ```
 
-**Details**:
-- Executes the `reset-steps` defined in the execution section of the bee YAML files.
-- If no `reset-steps` are defined, the command does nothing for that bee.
+## Global Options
 
-For more details on reset steps, see the [Bee Specialization](api/bee_spec.md).
+These work with any command:
+
+- `--project-dir path` - Use a different project folder
+- `--quiet` - Less output
+- `--verbose` - More debug info
+
+## Safety Features
+
+- Network operations are blocked by default (use `--allow-network`)
+- Remote targets require explicit consent IDs
+- Secrets are masked in dry-run output
+- Everything is validated before execution
+

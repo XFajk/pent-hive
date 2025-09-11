@@ -1,23 +1,21 @@
 # Documentation Overview
 
-Welcome to the Pent-Hive documentation! This site is your guide to understanding and using the Pent-Hive system for organizing, automating, and reproducing penetration testing workflows.
+This documentation covers everything you need to know about Pent-Hive.
 
-## Sections
+## Quick Start
 
-### 1. How It Works
-Learn about the core concepts, workflow, and file structure of Pent-Hive. Start here to understand the system's architecture. [Read more](how_it_works.md).
+1. **[How It Works](how_it_works.md)** - Understand the core concepts
+2. **[CLI Reference](cli_docs.md)** - Learn the command-line interface
 
-### 2. CLI Docs
-Detailed documentation for the Pent-Hive CLI commands, including `init`, `test`, `build`, `lint`, and `reset`. Understand how to use the CLI to manage your pentesting workflows.
+## YAML API Reference
 
-### 3. YAML API Docs
-Explore the YAML API in depth:
-- **Bee Specialization**: Learn how to define tasks and actions using Bees.
-- **Hive Specialization**: Understand how to configure environments for task execution.
-- **Queen Specialization**: Discover how to orchestrate tasks across multiple environments.
+- **[Bee Specification](api/bee_spec.md)** - Define tasks and commands
+- **[Hive Specification](api/hive_spec.md)** - Configure execution environments
+- **[Queen Specification](api/queen_spec.md)** - Orchestrate workflows
 
-### 4. Examples
-Step-by-step guides and practical examples to help you get started with Pent-Hive. Learn how to set up and execute workflows effectively.
+## Examples
+
+Check the `example/` folder in your project for practical examples of Bees, Hives, and Queens.
 
 ## Getting Started
 
