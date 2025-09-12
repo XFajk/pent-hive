@@ -1,5 +1,7 @@
 mod cmd;
 
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -14,13 +16,22 @@ enum Commands {
     Test,
     Build,
     Lint,
-    Init,
+    Init {
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        #[arg(short, long)]
+        project_name: Option<String>,
+
+        #[arg(short, long, default_value_t = false)]
+        with_schemas: bool,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
+    match cli.command {
         Some(Commands::Test) => {
             todo!("Test command logic goes here");
         }
@@ -30,8 +41,12 @@ fn main() {
         Some(Commands::Lint) => {
             todo!("Lint command logic goes here");
         }
-        Some(Commands::Init) => {
-            cmd::init::init_command();
+        Some(Commands::Init {
+            path,
+            project_name,
+            with_schemas,
+        }) => {
+            cmd::init::init_command(&path, project_name, with_schemas);
         }
         None => {
             println!("No command provided. Use --help for more information.");
